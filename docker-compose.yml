@@ -1,0 +1,77 @@
+services:
+  db:
+    image: supabase/postgres:17.6.1.096
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-captionit}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-replace-with-a-secure-password}
+      DB_PASSWORD: ${DB_PASSWORD:-replace-with-a-secure-password}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-secure-jwt-secret}
+      JWT_EXPIRY: ${JWT_EXPIRY:-86400}
+    volumes:
+      - data:/var/lib/postgresql/data
+      - ./backend/initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-captionit}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_SERVER: db
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-replace-with-a-secure-password}
+    ports:
+      - 8083:80
+    depends_on:
+      db:
+        condition: service_healthy
+
+  postgrest:
+    image: postgrest/postgrest
+    restart: unless-stopped
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${DB_PASSWORD:-replace-with-a-secure-password}@db:5432/${POSTGRES_DB:-captionit}
+      PGRST_DB_SCHEMAS: "public, basic_auth"
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-replace-with-a-secure-jwt-secret}
+      PGRST_SERVER_HOST: 0.0.0.0
+    ports:
+      - 3000:3000
+    command: [ "postgrest" ]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl --fail http://localhost:3000/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  swagger:
+    image: swaggerapi/swagger-ui
+    ports:
+      - "8084:8080"
+    environment:
+      - API_URL=http://localhost:3000/
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+
+volumes:
+  data:

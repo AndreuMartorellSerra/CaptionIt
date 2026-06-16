@@ -1,0 +1,28 @@
+CREATE SCHEMA IF NOT EXISTS api;
+CREATE SCHEMA IF NOT EXISTS basic_auth;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticator') THEN
+    CREATE ROLE authenticator WITH LOGIN PASSWORD 'captionit_pass';
+  ELSE
+    ALTER ROLE authenticator WITH PASSWORD 'captionit_pass';
+  END IF;
+END $$;
+
+DO $$ 
+BEGIN
+IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+    CREATE ROLE anon NOINHERIT;
+END IF;
+END $$;
+
+GRANT anon TO authenticator;
+
+GRANT USAGE ON SCHEMA public, api, basic_auth TO anon;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon;

@@ -1,0 +1,47 @@
+ALTER TABLE IF EXISTS users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS answers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS modalities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS parties ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION auth_uid() RETURNS int AS $$
+  SELECT nullif(current_setting('request.jwt.claims', true)::json->>'id', '')::int;
+$$ LANGUAGE sql STABLE;
+
+DROP POLICY IF EXISTS user_ins ON users;
+CREATE POLICY user_ins ON users FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS user_sel ON users;
+CREATE POLICY user_sel ON users FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS user_upd ON users;
+CREATE POLICY user_upd ON users FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS user_del ON users;
+CREATE POLICY user_del ON users FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS room_all ON rooms;
+CREATE POLICY room_all ON rooms FOR ALL USING (true);
+
+DROP POLICY IF EXISTS party_all ON parties;
+CREATE POLICY party_all ON parties FOR ALL USING (true);
+
+DROP POLICY IF EXISTS ans_ins ON answers;
+CREATE POLICY ans_ins ON answers FOR INSERT WITH CHECK (user_id = auth_uid());
+
+DROP POLICY IF EXISTS ans_sel ON answers;
+CREATE POLICY ans_sel ON answers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS mod_sel ON modalities;
+CREATE POLICY mod_sel ON modalities FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS tem_sel ON templates;
+CREATE POLICY tem_sel ON templates FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS vote_ins ON votes;
+CREATE POLICY vote_ins ON votes FOR INSERT WITH CHECK (user_id = auth_uid());
+
+DROP POLICY IF EXISTS vote_sel ON votes;
+CREATE POLICY vote_sel ON votes FOR SELECT USING (true);
