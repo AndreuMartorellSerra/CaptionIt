@@ -29,7 +29,7 @@ DROP POLICY IF EXISTS party_all ON parties;
 CREATE POLICY party_all ON parties FOR ALL USING (true);
 
 DROP POLICY IF EXISTS ans_ins ON answers;
-CREATE POLICY ans_ins ON answers FOR INSERT WITH CHECK (user_id = auth_uid());
+CREATE POLICY ans_ins ON answers FOR INSERT WITH CHECK (user_id IS NOT NULL);
 
 DROP POLICY IF EXISTS ans_sel ON answers;
 CREATE POLICY ans_sel ON answers FOR SELECT USING (true);
@@ -41,7 +41,7 @@ DROP POLICY IF EXISTS tem_sel ON templates;
 CREATE POLICY tem_sel ON templates FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS vote_ins ON votes;
-CREATE POLICY vote_ins ON votes FOR INSERT WITH CHECK (user_id = auth_uid());
+CREATE POLICY vote_ins ON votes FOR INSERT WITH CHECK (user_id IS NOT NULL);
 
 DROP POLICY IF EXISTS vote_sel ON votes;
 CREATE POLICY vote_sel ON votes FOR SELECT USING (true);

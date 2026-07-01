@@ -315,6 +315,8 @@ if (path.includes('/round')) {
         const content = round.content;
         const roundContent = document.getElementById('round-content');
         const isImg = /^https?:\/\//i.test(content) || /^data:image\//i.test(content);
+        const input = document.getElementById('answer-input');
+        const btn = document.getElementById('submit-btn');
         roundContent.innerHTML = '';
 
         if (isImg) {
@@ -331,18 +333,21 @@ if (path.includes('/round')) {
 
         document.getElementById('round-title').textContent = `Ronda ${currentRound} de ${totalRounds}`;
 
-        const input = document.getElementById('answer-input');
-        const btn = document.getElementById('submit-btn');
         let checkAnswersInterval = null;
 
         const submitCurrentAnswer = async () => {
             if (myAnswer || !input.value.trim()) return;
             myAnswer = input.value.trim();
-            await fetch(`${API_URL}/answers`, {
+            const res = await fetch(`${API_URL}/answers`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: myAnswer, round_id: currentRoundId, user_id: myUserId })
             });
+            if (!res.ok) {
+                myAnswer = null;
+                alert('No s’ha pogut guardar la resposta. Torna-ho a intentar.');
+                return;
+            }
             input.disabled = btn.disabled = true;
             btn.textContent = '✓ Resposta enviada';
         };
@@ -368,8 +373,11 @@ if (path.includes('/round')) {
 
     async function checkIfAllAnswered() {
         const answers = await fetchJSON(`${API_URL}/answers?round_id=eq.${currentRoundId}`);
-        if (answers.length > 0 && totalUsers > 0 && answers.length === totalUsers) {
+        if (answers.length > 0 && totalUsers > 0 && answers.length >= totalUsers) {
             if (roundInterval) clearInterval(roundInterval);
+            if (!myAnswer && input.value.trim()) {
+                await submitCurrentAnswer();
+            }
             window.location.replace('/answersVotes/');
         }
     }
@@ -438,9 +446,13 @@ if (path.includes('/answersVotes')) {
             if (answerIds.length === 0) return;
 
             const votes = await fetchJSON(`${API_URL}/votes?answer_id=in.(${answerIds.join(',')})`);
-            if (votes.length > 0 && totalUsers > 0 && votes.length === totalUsers) {
+            if (votes.length > 0 && totalUsers > 0 && votes.length >= totalUsers) {
                 if (checkVotesInterval) clearInterval(checkVotesInterval);
                 clearInterval(voteInterval);
+                if (!voteSubmitted && selectedAnswerId) {
+                    voteSubmitted = true;
+                    await fetch(`${API_URL}/votes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer_id: selectedAnswerId, user_id: myUserId }) });
+                }
                 window.location.replace('/ranking/');
             }
         }
