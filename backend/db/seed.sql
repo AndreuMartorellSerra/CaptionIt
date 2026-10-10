@@ -4,11 +4,11 @@
 INSERT INTO modalities (category) VALUES ('Image'), ('Phrase');
 
 INSERT INTO templates (content, modality_id) VALUES
-('https://api.memegen.link/images/drake.png', 1),
-('https://api.memegen.link/images/doge.png', 1),
-('https://api.memegen.link/images/stonks.png', 1),
-('https://api.memegen.link/images/willywonka.png', 1),
-('https://api.memegen.link/images/afraid.png', 1),
+('/images/meme-01.svg', 1),
+('/images/meme-02.svg', 1),
+('/images/meme-03.svg', 1),
+('/images/meme-04.svg', 1),
+('/images/meme-05.svg', 1),
 ('I only use my phone for...', 2),
 ('The worst advice I ever got was...', 2),
 ('If I were invisible for one day, I would...', 2),

@@ -27,6 +27,40 @@ const local = {
     clearAll: () => ['roomCode', 'roomId', 'token'].forEach(k => localStorage.removeItem(k))
 };
 
+async function ensureRoomContext() {
+    const urlCode = new URLSearchParams(window.location.search).get('code');
+    const storedRoomCode = local.get('roomCode') || urlCode;
+    let roomId = parseInt(local.get('roomId'), 10);
+
+    if (!storedRoomCode && !roomId) return { roomCode: null, roomId: null };
+
+    if (!roomId && storedRoomCode) {
+        const rooms = await fetchJSON(`${API_URL}/rooms?code=eq.${storedRoomCode}`);
+        if (rooms && rooms[0]) {
+            roomId = rooms[0].id;
+            local.set('roomCode', storedRoomCode);
+            local.set('roomId', String(roomId));
+        }
+    }
+
+    return { roomCode: storedRoomCode, roomId };
+}
+
+function resolveLocalMemeUrl(content) {
+    const normalized = content.trim().replace(/^backend\/content\//i, '/images/');
+
+    if (/^https?:\/\/(?:.*\.)?memegen\.link\//i.test(normalized) || /^https?:\/\/api\.memegen\.link\//i.test(normalized)) {
+        let hash = 0;
+        for (let i = 0; i < normalized.length; i += 1) {
+            hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+        }
+        const index = Math.abs(hash % 50) + 1;
+        return `/images/meme-${String(index).padStart(2, '0')}.svg`;
+    }
+
+    return normalized;
+}
+
 async function assegurarMyUserId() {
     let myId = parseInt(local.get('myUserId'), 10);
     if (!myId || Number.isNaN(myId)) {
@@ -258,7 +292,13 @@ if (path.includes('/round')) {
 
     async function start() {
         myUserId = await assegurarMyUserId();
-        const roomId = local.get('roomId');
+        const { roomId } = await ensureRoomContext();
+        if (!roomId) {
+            alert('No s’ha pogut trobar la sala. Torna a crear-la o entra de nou des del codi.');
+            window.location.replace('/createOrJoinRoom/');
+            return;
+        }
+
         const party = await fetchJSON(`${API_URL}/parties?room_id=eq.${roomId}&order=id.desc&limit=1`);
         const users = await fetchJSON(`${API_URL}/users?room_id=eq.${roomId}`);
 
@@ -312,22 +352,31 @@ if (path.includes('/round')) {
     }
 
     function showRoundContent(round) {
-        const content = round.content;
+        const rawContent = round.content;
+        const normalizedContent = resolveLocalMemeUrl(rawContent);
         const roundContent = document.getElementById('round-content');
-        const isImg = /^https?:\/\//i.test(content) || /^data:image\//i.test(content);
+        const isImg = /^https?:\/\//i.test(normalizedContent)
+            || /^data:image\//i.test(normalizedContent)
+            || /^\/images\//i.test(normalizedContent)
+            || /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(normalizedContent);
         const input = document.getElementById('answer-input');
         const btn = document.getElementById('submit-btn');
         roundContent.innerHTML = '';
 
         if (isImg) {
             const image = document.createElement('img');
-            image.src = content;
+            image.src = normalizedContent;
+            image.alt = 'Imatge de la ronda';
             image.className = 'max-w-full h-auto max-h-96 rounded-2xl shadow-lg';
+            image.loading = 'eager';
+            image.onerror = () => {
+                roundContent.innerHTML = '<div class="text-xl font-semibold text-yellow-200 bg-slate-800/70 px-6 py-4 rounded-2xl">No s’ha pogut carregar la imatge.</div>';
+            };
             roundContent.appendChild(image);
         } else {
             const text = document.createElement('div');
             text.className = 'text-5xl font-bold text-white text-center';
-            text.textContent = content;
+            text.textContent = rawContent;
             roundContent.appendChild(text);
         }
 

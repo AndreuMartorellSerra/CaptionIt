@@ -7,26 +7,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: 'src/views',
-  publicDir: '../public',
-  
+  publicDir: '../../public',
+
   plugins: [
     tailwindcss(),
   ],
-
-  optimizeDeps: {
-    include: ['@tailwindcss/vite'],
-    esbuildOptions: {
-      loader: {
-        '.node': 'file',
-      },
-    },
-  },
-  esbuild: {
-    loader: {
-      '.node': 'file',
-    },
-  },
-  assetsInclude: ['**/*.node'],
 
   build: {
     rollupOptions: {
